@@ -1,3 +1,5 @@
+// Using a HashMap to Track Category Totals
+use std::collections::HashMap;
 // Importing the input/output libary from Rust's standard library
 use std::io;
 
@@ -83,7 +85,33 @@ fn main() {
         // Display all recorded expenses
         println!("\n📔 Your expenses:");
         for exp in &expenses {
-            println!("- &{:.2} ({})", exp.amount, exp.category);
+            println!("- ${:.2} ({})", exp.amount, exp.category);
         }
     }
+
+    // After exiting, show summary stats
+    display_summary(&expenses);
+}
+
+// Function to display summary stats
+fn display_summary(expenses: &Vec<Expense>) {
+    let mut total: f64 = 0.0;
+    let mut category_totals: HashMap<String, f64> = HashMap::new();
+
+    // Calculate total expenses and category totals
+    for expense in expenses {
+        total += expense.amount;
+        let counter = category_totals.entry(expense.category.clone()).or_insert(0.0);
+        *counter += expense.amount;
+    }
+
+    println!("\n💰 Expense summary");
+    println!("--------------------------------");
+    println!("Total spent: ${:.2}", total);
+    println!("--------------------------------");
+
+    for (category, amount) in &category_totals {
+        println!("{}: ${:.2}", category, amount);
+    }
+    println!("--------------------------------");
 }
