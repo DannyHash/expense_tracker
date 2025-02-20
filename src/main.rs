@@ -1,13 +1,22 @@
 // Importing the input/output libary from Rust's standard library
 use std::io;
 
+// Define a struct to represent an exepense
+struct Expense {
+    amount: f64,
+    category: String,
+}
+
 fn main() {
     // Print a welcome message
     println!("💰 Welcome to the Rust Expense Tracker!");
     println!("Type 'exit' to exit the program");
 
+    // List of predefined categories
+    let categories = ["Food", "Transport", "Entertainment", "Shopping", "Other"];
+
     // Create a vector to store expenses
-    let mut expenses: Vec<f64> = Vec::new();
+    let mut expenses: Vec<Expense> = Vec::new();
 
     // Start an infiite loop to keep the program running
     loop {
@@ -30,17 +39,51 @@ fn main() {
         }
 
         // Convert the input to a floating point number
-        match input.parse::<f64>() {
-            Ok(amount) => {
-                expenses.push(amount); // Store the expense
-                println!("✅ Added Expense: ${:.2}", amount);
-            }
+        let amount: f64 = match input.parse() {
+            Ok(value) => value,
             Err(_) => {
                 println!("⚠️ Invalid input! Please enter a valid number");
+                continue;
             }
+        };
+
+        // Ask user to select a category
+        println!("\nSelect a category");
+        for (i, category) in categories.iter().enumerate() {
+            println!("{}: {}", i + 1, category);
         }
 
-        // Show all recorded expenses
-        println!("📔 Your expenses: {:?}", expenses);
+        let mut category_input = String::new();
+        io::stdin()
+            .read_line(&mut category_input)
+            .expect("Failed to read input");
+        let category_input = category_input.trim();
+
+        // Convert category input to an index
+        let category_index: usize;
+        if let Ok(num) = category_input.parse::<usize>() {
+            if num > 0 && num <= categories.len() {
+                category_index = num - 1;
+            } else {
+                println!("⚠️ Invalid choice! Using 'Other' as default.");
+                category_index = categories.len() - 1;
+            }
+        } else {
+            println!("⚠️ Invalid choice! Using 'Other' as default.");
+            category_index = categories.len() - 1;
+        }
+
+        // Create an expense instance and store it
+        let expense = Expense {
+            amount,
+            category: categories[category_index].to_string(),
+        };
+        expenses.push(expense);
+
+        // Display all recorded expenses
+        println!("\n📔 Your expenses:");
+        for exp in &expenses {
+            println!("- &{:.2} ({})", exp.amount, exp.category);
+        }
     }
 }
