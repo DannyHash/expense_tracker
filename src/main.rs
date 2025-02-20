@@ -1,13 +1,16 @@
-// Using a HashMap to Track Category Totals
 use std::collections::HashMap;
-// Importing the input/output libary from Rust's standard library
-use std::io;
+use std::fs::{self, OpenOptions};
+use std::io::{self, Write};
+use serde::{Serialize, Deserialize};
 
 // Define a struct to represent an exepense
+#[derive(Serialize, Deserialize)]
 struct Expense {
     amount: f64,
     category: String,
 }
+
+const FILE_PATH: &str = "expense.json";
 
 fn main() {
     // Print a welcome message
@@ -18,7 +21,7 @@ fn main() {
     let categories = ["Food", "Transport", "Entertainment", "Shopping", "Other"];
 
     // Create a vector to store expenses
-    let mut expenses: Vec<Expense> = Vec::new();
+    let mut expenses: Vec<Expense> = load_expenses();
 
     // Start an infiite loop to keep the program running
     loop {
@@ -89,8 +92,25 @@ fn main() {
         }
     }
 
+    save_expenses(&expenses);
+    println!("\n✅ Expenses saved");
+
     // After exiting, show summary stats
     display_summary(&expenses);
+}
+
+// Function to save expenses to a file
+fn save_expenses(expenses: &Vec<Expense>) {
+    let json = serde_json::to_string_pretty(expenses).expect("Failed to serialize expenses");
+    fs::write(FILE_PATH, json).expect("Failed to write to file");
+}
+
+// Function to load expenses from a file
+fn load_expenses() -> Vec<Expense> {
+    match fs::read_to_string(FILE_PATH) {
+        Ok(data) => serde_json::from_str(&data).unwrap_or_else(|_| Vec::new()),
+        Err(_) => Vec::new(), // Return empty list if file does not exist
+    }
 }
 
 // Function to display summary stats
