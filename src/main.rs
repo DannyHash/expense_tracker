@@ -15,7 +15,6 @@ const FILE_PATH: &str = "expense.json";
 fn main() {
     // Print a welcome message
     println!("💰 Welcome to the Rust Expense Tracker!");
-    println!("Type 'exit' to exit the program");
 
     // List of predefined categories
     let categories = ["Food", "Transport", "Entertainment", "Shopping", "Other"];
@@ -55,7 +54,7 @@ fn main() {
 // Function to add an expense
 fn add_expense(expenses: &mut Vec<Expense>, categories: &[&str]) {
     // Prompt the User for input
-    println!("\nEnter an expense amount(or 'exit' to exit the program):");
+    println!("\nEnter an expense amount:");
 
     // Create a mutable string to store user input
     let mut input = String::new();

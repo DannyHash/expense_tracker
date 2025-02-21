@@ -14,5 +14,9 @@
   {
     "amount": 40.0,
     "category": "Shopping"
+  },
+  {
+    "amount": 20.0,
+    "category": "Other"
   }
 ]
