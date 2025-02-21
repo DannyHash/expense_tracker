@@ -1,10 +1,13 @@
 use chrono::{DateTime, Datelike, Utc};
+use colored::*;
 use csv::Writer;
+use dialoguer::Select;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, ErrorKind, Write};
+use std::process;
 use std::result::Result;
 
 // Define a struct to represent an exepense
@@ -27,35 +30,52 @@ fn main() {
 
     // Start an infiite loop to keep the program running
     loop {
-        println!("\nMenu:");
-        println!("1️⃣ Add expense");
-        println!("2️⃣ View expenses");
-        println!("3️⃣ Sort expenses");
-        println!("4️⃣ Filter expenses");
-        println!("5️⃣ Monthly Summary");
-        println!("6️⃣ Delete an Expense");
-        println!("7️⃣ Save & Exit");
-        println!("8️⃣ Export to CSV");
+        // println!("\nMenu:");
+        // println!("1️⃣ Add expense");
+        // println!("2️⃣ View expenses");
+        // println!("3️⃣ Sort expenses");
+        // println!("4️⃣ Filter expenses");
+        // println!("5️⃣ Monthly Summary");
+        // println!("6️⃣ Delete an Expense");
+        // println!("7️⃣ Save & Exit");
+        // println!("8️⃣ Export to CSV");
 
-        let mut choice = String::new();
-        io::stdin()
-            .read_line(&mut choice)
-            .expect("Failed to read user input");
-        let choice = choice.trim();
+        // let mut choice = String::new();
+        // io::stdin()
+        //     .read_line(&mut choice)
+        //     .expect("Failed to read user input");
+        // let choice = choice.trim();
+        let choices = vec![
+            "➕ Add Expense",
+            "📋 View Expenses",
+            "📊 Sort Expenses",
+            "📊 Filter Expenses",
+            "📅 Monthly Summary",
+            "🗑️ Delete an Expense",
+            "📁 Export to CSV",
+            "💾 Save & Exit",
+        ];
 
-        match choice {
-            "1" => add_expense(&mut expenses, &categories),
-            "2" => view_expenses(&expenses),
-            "3" => sort_expenses(&mut expenses),
-            "4" => filter_expenses(&expenses),
-            "5" => monthly_summary(&expenses),
-            "6" => delete_expenses(&mut expenses),
-            "7" => {
+        let selection = Select::new()
+            .with_prompt("📌 Choose an option")
+            .default(0)
+            .items(&choices)
+            .interact()
+            .unwrap();
+
+        match selection {
+            0 => add_expense(&mut expenses, &categories),
+            1 => view_expenses(&expenses),
+            2 => sort_expenses(&mut expenses),
+            3 => filter_expenses(&expenses),
+            4 => monthly_summary(&expenses),
+            5 => delete_expenses(&mut expenses),
+            6 => {
                 save_expenses(&expenses);
                 println!("👋 Exiting program... Goodbye!");
                 break;
             }
-            "8" => {
+            7 => {
                 if let Err(e) = export_to_csv(&expenses) {
                     println!("⚠️ Failed to export: {}", e);
                 }
@@ -130,20 +150,23 @@ fn add_expense(expenses: &mut Vec<Expense>, categories: &[&str]) {
 
 // Function to view all recorded expenses
 fn view_expenses(expenses: &Vec<Expense>) {
+    println!("\n{}", "📋 Expense List".bold().underline());
+
     if expenses.is_empty() {
-        println!("📂 No expenses were recorded");
+        println!("{}", "⚠️ No expenses recorded yet.".yellow());
         return;
     }
 
     println!("\n💰 Your Expenses:");
     println!("-------------------------");
 
-    for expense in expenses {
+    for (i, expense) in expenses.iter().enumerate() {
         println!(
-            "Category: {}, Amount: ${:.2}, Date: {}",
-            expense.category,
-            expense.amount,
-            expense.timestamp.format("%Y-%m-%d %H:%M:%S")
+            "{} {} - {} - ${:.2}",
+            format!("#{}", i + 1).cyan(),
+            expense.category.green(),
+            expense.timestamp.to_string().purple(),
+            expense.amount
         );
     }
 
@@ -279,7 +302,7 @@ fn delete_expenses(expenses: &mut Vec<Expense>) {
         return;
     }
 
-    println!("\n🗑️ Delete an Expense:");
+    println!("\n 🗑️ Delete an Expense:");
     view_expenses(expenses);
 
     println!("\nEnter the index of the expense to delete:");
