@@ -34,7 +34,7 @@ This project is an excellent way to learn Rust fundamentals—ownership, error h
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/yourusername/expense-tracker-cli.git
+   git clone https://github.com/DannyHash/expense-tracker-cli.git
    cd expense-tracker-cli
 2. **Build the project:**
    ```bash
