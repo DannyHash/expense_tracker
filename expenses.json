@@ -1,0 +1,17 @@
+[
+  {
+    "amount": 30.0,
+    "category": "Entertainment",
+    "timestamp": "2025-02-21T11:54:34.693954300Z"
+  },
+  {
+    "amount": 10.0,
+    "category": "Food",
+    "timestamp": "2025-02-21T11:54:53.130792300Z"
+  },
+  {
+    "amount": 20.0,
+    "category": "Transport",
+    "timestamp": "2025-02-21T11:54:27.866421100Z"
+  }
+]

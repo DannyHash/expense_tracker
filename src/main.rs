@@ -1,8 +1,11 @@
 use chrono::{DateTime, Datelike, Utc};
+use csv::Writer;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::error::Error;
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, ErrorKind, Write};
+use std::result::Result;
 
 // Define a struct to represent an exepense
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -11,8 +14,6 @@ struct Expense {
     category: String,
     timestamp: DateTime<Utc>,
 }
-
-const FILE_PATH: &str = "expense.json";
 
 fn main() {
     // Print a welcome message
@@ -34,6 +35,7 @@ fn main() {
         println!("5️⃣ Monthly Summary");
         println!("6️⃣ Delete an Expense");
         println!("7️⃣ Save & Exit");
+        println!("8️⃣ Export to CSV");
 
         let mut choice = String::new();
         io::stdin()
@@ -53,7 +55,12 @@ fn main() {
                 println!("👋 Exiting program... Goodbye!");
                 break;
             }
-            _ => println!("Invalid choice! Please try again"),
+            "8" => {
+                if let Err(e) = export_to_csv(&expenses) {
+                    println!("⚠️ Failed to export: {}", e);
+                }
+            }
+            _ => println!("⚠️ Invalid choice! Please try again."),
         }
     }
 }
@@ -295,4 +302,24 @@ fn delete_expenses(expenses: &mut Vec<Expense>) {
     } else {
         println!("⚠️ Invalid index! No expense deleted.");
     }
+}
+
+fn export_to_csv(expenses: &Vec<Expense>) -> Result<(), Box<dyn Error>> {
+    let mut wtr = Writer::from_writer(File::create("expense_csv")?);
+
+    // Write CSV headers
+    wtr.write_record(&["Category", "Amount", "Timestamp"])?;
+
+    // Write each expense as a row
+    for expense in expenses {
+        wtr.write_record(&[
+            &expense.category,
+            &expense.amount.to_string(),
+            &expense.timestamp.to_string(),
+        ])?;
+    }
+
+    wtr.flush()?;
+    println!("📁 Expenses exported to `expenses.csv` successfully!");
+    Ok(())
 }
