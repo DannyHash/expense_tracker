@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::{self, OpenOptions};
@@ -8,6 +9,7 @@ use std::io::{self, Write};
 struct Expense {
     amount: f64,
     category: String,
+    timestamp: DateTime<Utc>,
 }
 
 const FILE_PATH: &str = "expense.json";
@@ -106,6 +108,7 @@ fn add_expense(expenses: &mut Vec<Expense>, categories: &[&str]) {
     let expense = Expense {
         amount,
         category: categories[category_index].to_string(),
+        timestamp: Utc::now(),
     };
     expenses.push(expense);
 
@@ -125,8 +128,10 @@ fn view_expenses(expenses: &Vec<Expense>) {
 
     for expense in expenses {
         println!(
-            "Category: {}, Amount: ${:.2}",
-            expense.category, expense.amount
+            "Category: {}, Amount: ${:.2}, Date: {}",
+            expense.category,
+            expense.amount,
+            expense.timestamp.format("%Y-%m-%d %H:%M:%S")
         );
     }
 
@@ -139,6 +144,8 @@ fn sort_expenses(expenses: &mut Vec<Expense>) {
     println!("1️⃣ By Amount (Low to High)");
     println!("2️⃣ By Amount (High to Low)");
     println!("3️⃣ By Category (A-Z)");
+    println!("4️⃣ By Date (Newest First)");
+    println!("5️⃣ By Date (Oldest First)");
 
     let mut input = String::new();
     io::stdin()
@@ -150,6 +157,8 @@ fn sort_expenses(expenses: &mut Vec<Expense>) {
         "1" => expenses.sort_by(|a, b| a.amount.partial_cmp(&b.amount).unwrap()),
         "2" => expenses.sort_by(|a, b| b.amount.partial_cmp(&a.amount).unwrap()),
         "3" => expenses.sort_by(|a, b| a.category.cmp(&b.category)),
+        "4" => expenses.sort_by(|a, b| b.timestamp.cmp(&a.timestamp)),
+        "5" => expenses.sort_by(|a, b| a.timestamp.cmp(&b.timestamp)),
         _ => {
             println!("⚠️ Invalid choice! Returning to menu");
             return;
