@@ -1,13 +1,12 @@
 use chrono::{DateTime, Datelike, Utc};
 use colored::*;
 use csv::Writer;
-use dialoguer::Select;
+use dialoguer::{Input, Select};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::error::Error;
-use std::fs::{self, File, OpenOptions};
+use std::fs::{self, File};
 use std::io::{self, ErrorKind, Write};
-use std::process;
 use std::result::Result;
 
 // Define a struct to represent an exepense
@@ -18,39 +17,40 @@ struct Expense {
     timestamp: DateTime<Utc>,
 }
 
+struct ExpenseTracker {
+    expenses: Vec<Expense>,
+    budgets: HashMap<String, f64>, // Stores budget limits per category
+}
+
+impl ExpenseTracker {
+    fn new() -> Self {
+        Self {
+            expenses: Vec::new(),
+            budgets: HashMap::new(),
+        }
+    }
+}
+
 fn main() {
     // Print a welcome message
     println!("💰 Welcome to the Rust Expense Tracker!");
 
     // List of predefined categories
-    let categories = ["Food", "Transport", "Entertainment", "Shopping", "Other"];
+    // let categories = ["Food", "Transport", "Entertainment", "Shopping", "Other"];
 
-    // Create a vector to store expenses
-    let mut expenses: Vec<Expense> = load_expenses();
+    // Create an instance of ExpenseTracker
+    let mut tracker = ExpenseTracker::new();
+    tracker.expenses = load_expenses();
 
     // Start an infiite loop to keep the program running
     loop {
-        // println!("\nMenu:");
-        // println!("1️⃣ Add expense");
-        // println!("2️⃣ View expenses");
-        // println!("3️⃣ Sort expenses");
-        // println!("4️⃣ Filter expenses");
-        // println!("5️⃣ Monthly Summary");
-        // println!("6️⃣ Delete an Expense");
-        // println!("7️⃣ Save & Exit");
-        // println!("8️⃣ Export to CSV");
-
-        // let mut choice = String::new();
-        // io::stdin()
-        //     .read_line(&mut choice)
-        //     .expect("Failed to read user input");
-        // let choice = choice.trim();
         let choices = vec![
             "➕ Add Expense",
             "📋 View Expenses",
             "📊 Sort Expenses",
             "📊 Filter Expenses",
             "📅 Monthly Summary",
+            "⚠️ Set Budget Limit",
             "🗑️ Delete an Expense",
             "📁 Export to CSV",
             "💾 Save & Exit",
@@ -64,21 +64,22 @@ fn main() {
             .unwrap();
 
         match selection {
-            0 => add_expense(&mut expenses, &categories),
-            1 => view_expenses(&expenses),
-            2 => sort_expenses(&mut expenses),
-            3 => filter_expenses(&expenses),
-            4 => monthly_summary(&expenses),
-            5 => delete_expenses(&mut expenses),
-            6 => {
-                save_expenses(&expenses);
-                println!("👋 Exiting program... Goodbye!");
-                break;
-            }
+            0 => add_expense(&mut tracker),
+            1 => view_expenses(&mut tracker.expenses),
+            2 => sort_expenses(&mut tracker.expenses),
+            3 => filter_expenses(&tracker.expenses),
+            4 => monthly_summary(&tracker.expenses),
+            5 => set_budget(&mut tracker),
+            6 => delete_expenses(&mut tracker.expenses),
             7 => {
-                if let Err(e) = export_to_csv(&expenses) {
+                if let Err(e) = export_to_csv(&tracker.expenses) {
                     println!("⚠️ Failed to export: {}", e);
                 }
+            }
+            8 => {
+                save_expenses(&tracker.expenses);
+                println!("👋 Exiting program... Goodbye!");
+                break;
             }
             _ => println!("⚠️ Invalid choice! Please try again."),
         }
@@ -86,66 +87,41 @@ fn main() {
 }
 
 // Function to add an expense
-fn add_expense(expenses: &mut Vec<Expense>, categories: &[&str]) {
-    // Prompt the User for input
-    println!("\nEnter an expense amount:");
+fn add_expense(tracker: &mut ExpenseTracker) {
+    let category: String = Input::new()
+        .with_prompt("Enter expense category:")
+        .interact_text()
+        .unwrap();
 
-    // Create a mutable string to store user input
-    let mut input = String::new();
+    let amount: f64 = Input::new()
+        .with_prompt("Enter expense amount:")
+        .interact_text()
+        .unwrap();
 
-    // Read user input from standard input (keyboard)
-    io::stdin()
-        .read_line(&mut input) // Read input and store in 'input'
-        .expect("Failed to read user input"); // Handle potential errors
-
-    // Trim any leading or trailing whitespace from the input and check if the user wants to exit
-    let input = input.trim();
-
-    // Convert the input to a floating point number
-    let amount: f64 = match input.parse() {
-        Ok(value) => value,
-        Err(_) => {
-            println!("⚠️ Invalid input! Please enter a valid number");
-            return;
-        }
-    };
-
-    // Ask user to select a category
-    println!("\nSelect a category");
-    for (i, category) in categories.iter().enumerate() {
-        println!("{}: {}", i + 1, category);
-    }
-
-    let mut category_input = String::new();
-    io::stdin()
-        .read_line(&mut category_input)
-        .expect("Failed to read user input");
-    let category_input = category_input.trim();
-
-    // Convert category input to an index
-    let category_index: usize;
-    if let Ok(num) = category_input.parse::<usize>() {
-        if num > 0 && num <= categories.len() {
-            category_index = num - 1;
-        } else {
-            println!("⚠️ Invalid choice! Using 'Other' as default.");
-            category_index = categories.len() - 1;
-        }
-    } else {
-        println!("⚠️ Invalid choice! Using 'Other' as default.");
-        category_index = categories.len() - 1;
-    }
-
-    // Create an expense instance and store it
-    let expense = Expense {
+    tracker.expenses.push(Expense {
+        category: category.clone(),
         amount,
-        category: categories[category_index].to_string(),
-        timestamp: Utc::now(),
-    };
-    expenses.push(expense);
+        timestamp: chrono::Utc::now(),
+    });
 
-    save_expenses(&expenses);
-    println!("\n✅ Expenses saved");
+    println!("✅ Expense added: {} - ${:.2}", category, amount);
+
+    // Check if budget is exceeded
+    if let Some(&budget) = tracker.budgets.get(&category) {
+        let total_spent: f64 = tracker
+            .expenses
+            .iter()
+            .filter(|e| e.category == category)
+            .map(|e| e.amount)
+            .sum();
+
+        if total_spent > budget {
+            println!(
+                "⚠️ Warning: You have exceeded your budget of ${:.2} for '{}'.",
+                budget, category
+            );
+        }
+    }
 }
 
 // Function to view all recorded expenses
@@ -294,6 +270,24 @@ fn monthly_summary(expenses: &Vec<Expense>) {
 
     println!("-------------------------------------");
     println!("💰 Total Spending This Month: ${:.2}", total_spent);
+}
+
+fn set_budget(tracker: &mut ExpenseTracker) {
+    let category: String = Input::new()
+        .with_prompt("Enter category name to set a budget for")
+        .interact_text()
+        .unwrap();
+
+    let budget: f64 = Input::new()
+        .with_prompt(format!("Enter budget limit for '{}'", category))
+        .interact_text()
+        .unwrap();
+
+    tracker.budgets.insert(category.clone(), budget);
+    println!(
+        "✅ Budget of ${:.2} set for category '{}'",
+        budget, category
+    );
 }
 
 fn delete_expenses(expenses: &mut Vec<Expense>) {
