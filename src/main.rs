@@ -1,8 +1,8 @@
 use chrono::{DateTime, Datelike, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::fs::{self, OpenOptions};
-use std::io::{self, Write};
+use std::fs::{self, File, OpenOptions};
+use std::io::{self, ErrorKind, Write};
 
 // Define a struct to represent an exepense
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -33,7 +33,7 @@ fn main() {
         println!("4️⃣ Filter expenses");
         println!("5️⃣ Monthly Summary");
         println!("6️⃣ Delete an Expense");
-        println!("7️⃣ Exit");
+        println!("7️⃣ Save & Exit");
 
         let mut choice = String::new();
         io::stdin()
@@ -49,10 +49,11 @@ fn main() {
             "5" => monthly_summary(&expenses),
             "6" => delete_expenses(&mut expenses),
             "7" => {
-                println!("👋 Exiting... Goodbye!");
+                save_expenses(&expenses);
+                println!("👋 Exiting program... Goodbye!");
                 break;
             }
-            _ => println!("Invalid choice! Please enter 1 - 5"),
+            _ => println!("Invalid choice! Please try again"),
         }
     }
 }
@@ -204,14 +205,27 @@ fn filter_expenses(expenses: &Vec<Expense>) {
 // Function to save expenses to a file
 fn save_expenses(expenses: &Vec<Expense>) {
     let json = serde_json::to_string_pretty(expenses).expect("Failed to serialize expenses");
-    fs::write(FILE_PATH, json).expect("Failed to write to file");
+    let mut file = File::create("expenses.json").expect("Failed to create file");
+    file.write_all(json.as_bytes())
+        .expect("Failed to write to file");
+    println!("💾 Expenses saved successfully!");
 }
 
 // Function to load expenses from a file
 fn load_expenses() -> Vec<Expense> {
-    match fs::read_to_string(FILE_PATH) {
-        Ok(data) => serde_json::from_str(&data).unwrap_or_else(|_| Vec::new()),
-        Err(_) => Vec::new(), // Return empty list if file does not exist
+    match fs::read_to_string("expenses.json") {
+        Ok(data) => serde_json::from_str(&data).unwrap_or_else(|_| {
+            println!("⚠️ Error parsing file. Starting fresh.");
+            Vec::new()
+        }),
+        Err(error) if error.kind() == ErrorKind::NotFound => {
+            println!("📂 No previous expenses found. Starting fresh.");
+            Vec::new()
+        }
+        Err(_) => {
+            println!("⚠️ Error reading file. Starting fresh.");
+            Vec::new()
+        } // Return empty list if file does not exist
     }
 }
 
@@ -276,7 +290,7 @@ fn delete_expenses(expenses: &mut Vec<Expense>) {
     };
 
     if index < expenses.len() {
-        expenses.remove(index);
+        expenses.remove(index - 1);
         println!("✅ Expense deleted successfully!");
     } else {
         println!("⚠️ Invalid index! No expense deleted.");
