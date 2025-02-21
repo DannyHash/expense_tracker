@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Datelike, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::{self, OpenOptions};
@@ -31,7 +31,8 @@ fn main() {
         println!("2️⃣ View expenses");
         println!("3️⃣ Sort expenses");
         println!("4️⃣ Filter expenses");
-        println!("5️⃣ Exit");
+        println!("5️⃣ Monthly Summary");
+        println!("6️⃣ Exit");
 
         let mut choice = String::new();
         io::stdin()
@@ -44,7 +45,8 @@ fn main() {
             "2" => view_expenses(&expenses),
             "3" => sort_expenses(&mut expenses),
             "4" => filter_expenses(&expenses),
-            "5" => {
+            "5" => monthly_summary(&expenses),
+            "6" => {
                 println!("👋 Exiting... Goodbye!");
                 break;
             }
@@ -160,7 +162,7 @@ fn sort_expenses(expenses: &mut Vec<Expense>) {
         "4" => expenses.sort_by(|a, b| b.timestamp.cmp(&a.timestamp)),
         "5" => expenses.sort_by(|a, b| a.timestamp.cmp(&b.timestamp)),
         _ => {
-            println!("⚠️ Invalid choice! Returning to menu");
+            println!(" ⚠️ Invalid choice! Returning to menu");
             return;
         }
     }
@@ -185,7 +187,7 @@ fn filter_expenses(expenses: &Vec<Expense>) {
         .collect();
 
     if filtered.is_empty() {
-        println!("\n⚠️ No expenses found for category: {}", category);
+        println!("\n ⚠️ No expenses found for category: {}", category);
     } else {
         println!("\n📌 Expenses in category '{}':", category);
         println!("-------------------------");
@@ -209,4 +211,41 @@ fn load_expenses() -> Vec<Expense> {
         Ok(data) => serde_json::from_str(&data).unwrap_or_else(|_| Vec::new()),
         Err(_) => Vec::new(), // Return empty list if file does not exist
     }
+}
+
+fn monthly_summary(expenses: &Vec<Expense>) {
+    let now = Utc::now();
+    let current_month = now.month();
+    let current_year = now.year();
+
+    let mut category_totals: std::collections::HashMap<String, f64> =
+        std::collections::HashMap::new();
+    let mut total_spent = 0.0;
+
+    for expense in expenses {
+        if expense.timestamp.month() == current_month && expense.timestamp.year() == current_year {
+            *category_totals
+                .entry(expense.category.clone())
+                .or_insert(0.0) += expense.amount;
+            total_spent += expense.amount;
+        }
+    }
+
+    if category_totals.is_empty() {
+        println!("\n📂 No expenses recorded for this month.");
+        return;
+    }
+
+    println!(
+        "\n📊 Monthly Summary for {}/{}:",
+        current_month, current_year
+    );
+    println!("-------------------------------------");
+
+    for (category, total) in &category_totals {
+        println!("Category: {}, Total Spent: ${:.2}", category, total);
+    }
+
+    println!("-------------------------------------");
+    println!("💰 Total Spending This Month: ${:.2}", total_spent);
 }
