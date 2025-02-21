@@ -32,7 +32,8 @@ fn main() {
         println!("3️⃣ Sort expenses");
         println!("4️⃣ Filter expenses");
         println!("5️⃣ Monthly Summary");
-        println!("6️⃣ Exit");
+        println!("6️⃣ Delete an Expense");
+        println!("7️⃣ Exit");
 
         let mut choice = String::new();
         io::stdin()
@@ -46,7 +47,8 @@ fn main() {
             "3" => sort_expenses(&mut expenses),
             "4" => filter_expenses(&expenses),
             "5" => monthly_summary(&expenses),
-            "6" => {
+            "6" => delete_expenses(&mut expenses),
+            "7" => {
                 println!("👋 Exiting... Goodbye!");
                 break;
             }
@@ -248,4 +250,35 @@ fn monthly_summary(expenses: &Vec<Expense>) {
 
     println!("-------------------------------------");
     println!("💰 Total Spending This Month: ${:.2}", total_spent);
+}
+
+fn delete_expenses(expenses: &mut Vec<Expense>) {
+    if expenses.is_empty() {
+        println!("\n❌ No expenses to delete!");
+        return;
+    }
+
+    println!("\n🗑️ Delete an Expense:");
+    view_expenses(expenses);
+
+    println!("\nEnter the index of the expense to delete:");
+
+    let mut index_str = String::new();
+    io::stdin()
+        .read_line(&mut index_str)
+        .expect("Failed to read user input");
+    let index: usize = match index_str.trim().parse() {
+        Ok(num) => num,
+        Err(_) => {
+            println!("⚠️ Invalid input! Please enter a valid index.");
+            return;
+        }
+    };
+
+    if index < expenses.len() {
+        expenses.remove(index);
+        println!("✅ Expense deleted successfully!");
+    } else {
+        println!("⚠️ Invalid index! No expense deleted.");
+    }
 }
